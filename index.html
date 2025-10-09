@@ -195,7 +195,7 @@ void main() {
         case "Sphere": shape = createSphere(); break;
       }
       let shapeBuffer = initBuffer(shape.positions, shape.colors, shape.indices);
-      if(selectedObject) {
+      if (selectedObject) {
         selectedObject.children.push(shapeBuffer);
         shape.parent = selectedObject;
       }
@@ -330,6 +330,25 @@ void main() {
       0, 0, (2 * zFar * zNear) / (zNear - zFar), 0
     ]);
 
+    function drawShapePickObject(s) {
+      let transformMatrix = s.getFullTransformMatrix(s);
+      gl.uniformMatrix4fv(uPickMTM, false, transformMatrix);
+
+      gl.bindBuffer(gl.ARRAY_BUFFER, s.vbo);
+      gl.enableVertexAttribArray(posLoc);
+      gl.vertexAttribPointer(posLoc, 3, gl.FLOAT, false, 0, 0);
+
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, s.ibo);
+
+      gl.uniform3fv(uPickColorLoc, s.pickColor);
+      gl.drawElements(gl.TRIANGLES, s.length, gl.UNSIGNED_SHORT, 0);
+      if (s.children && s.children.length > 0) {
+        for (j = 0; j < s.children.length; j++) {
+          drawShapePickObject(s.children[j]);
+        }
+      }
+    }
+
     function pickObjectAt(x, y) {
       let mvMatrix = mat4Translate(mat4Identity(), [camX, camY, camZ]);
 
@@ -345,17 +364,7 @@ void main() {
       for (let i = 0; i < shapesGlobal.length; i++) {
         const b = shapesGlobal[i];
 
-        let transformMatrix = b.getFullTransformMatrix(b);
-        gl.uniformMatrix4fv(uPickMTM, false, transformMatrix);
-
-        gl.bindBuffer(gl.ARRAY_BUFFER, b.vbo);
-        gl.enableVertexAttribArray(posLoc);
-        gl.vertexAttribPointer(posLoc, 3, gl.FLOAT, false, 0, 0);
-
-        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, b.ibo);
-
-        gl.uniform3fv(uPickColorLoc, b.pickColor);
-        gl.drawElements(gl.TRIANGLES, b.length, gl.UNSIGNED_SHORT, 0);
+        drawShapePickObject(b);
       }
 
       let pixels = new Uint8Array(4);
@@ -410,7 +419,6 @@ void main() {
 
       if (s.children && s.children.length > 0) {
         for (j = 0; j < s.children.length; j++) {
-          console.log(s.children[j]);
           drawShapeInScene(s.children[j]);
         }
       }
