@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title>UNM CS 412/512 HW2</title>
+  <style>
+    body {
+      background: #111;
+      color: #ccc;
+      font-family: monospace;
+    }
+
+    textarea {
+      background: #222;
+      color: #0f0;
+      font: 14px monospace;
+      width: 400px;
+      height: 250px;
+    }
+
+    canvas {
+      border: 1px solid #444;
+    }
+  </style>
+</head>
+
+<body>
+  <h2>Interactive Controls & Geometric Primitives</h2>
+  <p>Edit vertex and fragment shaders on the left to get the result instantly.<br>
+    Use mouse to drag and rotate the cube. <br>
+    Use arrow keys and w, s keys to move the camera.<br>
+    Save your code to source file if you want to save it.<br>
+    Press F12 to see the console for debugging.</p>
+
+  <div style="display: flex; gap: 10px; align-items: flex-start;">
+    <div style="display: flex; flex-direction: column; gap: 10px;">
+      <div>
+        <b>Vertex Shader</b><br>
+        <textarea id="vertEditor"></textarea>
+      </div>
+      <div>
+        <b>Fragment Shader</b><br>
+        <textarea id="fragEditor"></textarea>
+      </div>
+    </div>
+    <div>
+      <canvas id="glcanvas" width="900" height="600"></canvas>
+    </div>
+    <div>
+      <div>
+        <p>Click on a shape in the scene to manipulate it!</p>
+      </div>
+      <div><label for="primitive">Choose a shape:</label>
+
+        <select name="primitive" id="primitiveName">
+          <option value="Cube">Cube</option>
+          <option value="Tetrahedron">Tetrahedron</option>
+          <option value="Cone">Cone</option>
+          <option value="Cylinder">Cylinder</option>
+          <option value="Sphere">Sphere</option>
+          <option value="Torus">Torus</option>
+        </select>
+      </div>
+
+      <button id="primitive-insert" onclick="createShape();">Add To Scene</button>
+      <div>
+        <p>Choose Transform Type</p>
+        <button id="rotate-button" onclick="setMode('rotate')">Rotate</button>
+        <button id="translate-button" onclick="setMode('translate')">Translate</button>
+        <button id="scale-button" onclick="setMode('scale')">Scale</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Vertex shader -->
+  <script id="vertex-shader" type="x-shader/x-vertex">#version 300 es
+in vec3 aPosition;
+in vec3 aColor;
+
+uniform float uTime; //time in sec
+uniform mat4 uModelViewMatrix;
+uniform mat4 uProjectionMatrix;
+uniform mat4 uModelTransformationMatrix;
+
+out vec3 vColor;
+
+void main() {
+  gl_Position = uProjectionMatrix * uModelViewMatrix * uModelTransformationMatrix * vec4(aPosition,1.0);
+  vColor = aColor;
+}
+</script>
+  <!-- Fragment Shader -->
+  <script id="fragment-shader" type="x-shader/x-fragment">#version 300 es
+precision mediump float;
+in vec3 vColor;
+uniform float uOpacity; 
+
+out vec4 fragColor;
+
+void main() {
+  fragColor = vec4(vColor, uOpacity);
+}
+</script>
+  <!--Object picker by color. Does not show in the GUI for editing the shaders-->
+  <script id="fragment-shader-pick" type="x-shader/x-fragment">#version 300 es
+precision mediump float;
+uniform vec3 uPickColor;
+out vec4 fragColor;
+void main() {
+  fragColor = vec4(uPickColor, 1.0);
+}
+</script>
+
+  <script src="primitives.js"></script>
+  <script src="transformations.js"></script>
+
+  <script>
+    function createShader(gl, type, source) {
+      let shader = gl.createShader(type);
+      gl.shaderSource(shader, source);
+      gl.compileShader(shader);
+      if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+        throw new Error(gl.getShaderInfoLog(shader));
+      }
+      return shader;
+    }
+
+    function createProgram(gl, vsSource, fsSource) {
+      let vs = createShader(gl, gl.VERTEX_SHADER, vsSource);
+      let fs = createShader(gl, gl.FRAGMENT_SHADER, fsSource);
+      let prog = gl.createProgram();
+      gl.attachShader(prog, vs);
+      gl.attachShader(prog, fs);
+      gl.linkProgram(prog);
+      if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
+        throw new Error(gl.getProgramInfoLog(prog));
+      }
+      return prog;
+    }
+
+    // WebGL setup
+    const canvas = document.getElementById("glcanvas");
+    const gl = canvas.getContext("webgl2");
+    if (!gl) alert("WebGL2 not supported");
+
+    let vertEditor = document.getElementById("vertEditor");
+    let fragEditor = document.getElementById("fragEditor");
+    vertEditor.value = document.getElementById("vertex-shader").textContent;
+    fragEditor.value = document.getElementById("fragment-shader").textContent;
+
+    let program, posLoc, colorLoc, uMVM, uPM, uMTM, uOpacityLoc;
+    let tetvbo, tetnbo, tetibo;
+    let buffers = [];
+    let rotMats = [];
+    let posMats = [];
+    let selectedObject = null;
+    let selectedObjectIndex = null;
+    let curId = 0;
+    let mode = "rotate";
+    function getNewId() {
+      curId++;//makes sure this id is always unique
+      return curId;
+    }
+    function setMode(modeName) {
+      mode = modeName;
+    }
+
+    function initBuffer(positions, colors, indices) {
+
+      let bvbo = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, bvbo);
+      gl.bufferData(gl.ARRAY_BUFFER, positions, gl.STATIC_DRAW);
+
+      let bnbo = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, bnbo);
+      gl.bufferData(gl.ARRAY_BUFFER, colors, gl.STATIC_DRAW);
+
+      let bibo = gl.createBuffer();
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, bibo);
+      gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indices, gl.STATIC_DRAW);
+      buffers.push(new shape(bvbo, bnbo, bibo, indices.length, getNewId()));
+      rotMats.push(null);
+    }
+
+    function createShape(shapeName = null) {
+      if (shapeName == null) {
+        shapeName = document.getElementById("primitiveName").value;
+      }
+      let shape = null;
+      console.log(shapeName);
+      switch (shapeName) {
+        case "Cube": shape = createCube(); break;
+        case "Cylinder": shape = createCylinder(); break;
+        case "Tetrahedron": shape = createTetrahedron(); break;
+        case "Cone": shape = createCone(); break;
+        case "Torus": shape = createTorus(); break;
+        case "Sphere": shape = createSphere(); break;
+      }
+      initBuffer(shape.positions, shape.colors, shape.indices);
+    }
+
+    function initAllBuffers() {
+      buffers = [];
+      //createShape("Cube");
+      createShape("Tetrahedron");
+      // createShape("Cylinder");
+      // createShape("Cylinder");
+      // createShape("Cone");
+      // createShape("Sphere");
+      // createShape("Torus");
+    }
+    initAllBuffers();
+
+    function initShaderProgram() {
+      try {
+        program = createProgram(gl, vertEditor.value, fragEditor.value);
+        gl.useProgram(program);
+        posLoc = gl.getAttribLocation(program, "aPosition");
+        colorLoc = gl.getAttribLocation(program, "aColor");
+        timeLoc = gl.getUniformLocation(program, "uTime");
+        uOpacityLoc = gl.getUniformLocation(program, "uOpacity");
+        uMVM = gl.getUniformLocation(program, "uModelViewMatrix");
+        uPM = gl.getUniformLocation(program, "uProjectionMatrix");
+        uMTM = gl.getUniformLocation(program, "uModelTransformationMatrix");
+      } catch (e) { console.error(e); }
+    }
+    initShaderProgram();
+
+    let pickProgram, uPickColorLoc;
+
+    //separate shader for rendering the interactible portion
+    function initPickShader() {
+      const vsSource = document.getElementById("vertex-shader").textContent;
+      const fsSource = document.getElementById("fragment-shader-pick").textContent;
+
+      pickProgram = createProgram(gl, vsSource, fsSource);
+      uPickColorLoc = gl.getUniformLocation(pickProgram, "uPickColor");
+      uPickPM = gl.getUniformLocation(pickProgram, "uProjectionMatrix");
+      uPickMVM = gl.getUniformLocation(pickProgram, "uModelViewMatrix");
+      uPickMTM = gl.getUniformLocation(pickProgram, "uModelTransformationMatrix");
+    }
+    initPickShader();
+
+    //define + initialize the frame buffs for picking objects by color
+    let pickFramebuffer = gl.createFramebuffer();
+    let pickTexture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, pickTexture);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, canvas.width, canvas.height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+
+    let depthBuffer = gl.createRenderbuffer();
+    gl.bindRenderbuffer(gl.RENDERBUFFER, depthBuffer);
+    gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, canvas.width, canvas.height);
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, pickFramebuffer);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, pickTexture, 0);
+    gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, depthBuffer);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+
+    vertEditor.onkeyup = initShaderProgram;
+    fragEditor.onkeyup = initShaderProgram;
+
+    // Mouse and keyboard interactions
+    let mouseDown = false, lastX, lastY, cubeRotX = 0, cubeRotY = 0;
+    let camX = 0, camY = 0, camZ = -6;
+
+    canvas.addEventListener('mousedown', e => { mouseDown = true; lastX = e.clientX; lastY = e.clientY; });
+    canvas.addEventListener('mouseup', () => mouseDown = false);
+    canvas.addEventListener('mousemove', e => {
+      if (!mouseDown) return;
+      if (!selectedObject) return;
+      let dx = e.clientX - lastX;
+      let dy = e.clientY - lastY;
+      if (mode == "rotate") {
+        selectedObject.rotY += dx * 0.01;
+        selectedObject.rotX += dy * 0.01;
+      }
+      else if (mode == "translate") {
+        selectedObject.posY += -dy * 0.01; //invert since y counts from the top
+        selectedObject.posX += dx * 0.01;
+      }
+      else if (mode == "scale") {
+        let scaleDiff = -dy * 0.01;
+        selectedObject.scaY += scaleDiff;
+        selectedObject.scaX += scaleDiff;
+        selectedObject.scaZ += scaleDiff;
+      }
+      lastX = e.clientX; lastY = e.clientY;
+    });
+
+    document.addEventListener('keydown', e => {
+      const step = 0.2;
+      switch (e.key) {
+        case 'ArrowUp': camY -= step; break;
+        case 'ArrowDown': camY += step; break;
+        case 'ArrowLeft': camX += step; break;
+        case 'ArrowRight': camX -= step; break;
+        case 'w': camZ += step; break;
+        case 's': camZ -= step; break;
+      }
+    });
+
+    let proj;
+    let modelViewMatrix;
+    let modelTransformationMatrix;
+    let cubeRotation;
+
+    let fov = Math.PI / 4, aspect = canvas.width / canvas.height, zNear = 0.1, zFar = 100;
+    let f = 1 / Math.tan(fov / 2);
+    proj = new Float32Array([
+      f / aspect, 0, 0, 0,
+      0, f, 0, 0,
+      0, 0, (zFar + zNear) / (zNear - zFar), -1,
+      0, 0, (2 * zFar * zNear) / (zNear - zFar), 0
+    ]);
+
+    function pickObjectAt(x, y) {
+      let mvMatrix = mat4Translate(mat4Identity(), [camX, camY, camZ]);
+
+      gl.bindFramebuffer(gl.FRAMEBUFFER, pickFramebuffer);
+      gl.viewport(0, 0, canvas.width, canvas.height);
+      gl.clearColor(0, 0, 0, 1);
+      gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+      gl.useProgram(pickProgram);
+      gl.uniformMatrix4fv(uPickPM, false, proj);
+      gl.uniformMatrix4fv(uPickMVM, false, mvMatrix);
+
+      for (let i = 0; i < buffers.length; i++) {
+        const b = buffers[i];
+
+        let transformMatrix = b.getFullTransformMatrix(b);
+        gl.uniformMatrix4fv(uPickMTM, false, transformMatrix);
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, b.vbo);
+        gl.enableVertexAttribArray(posLoc);
+        gl.vertexAttribPointer(posLoc, 3, gl.FLOAT, false, 0, 0);
+
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, b.ibo);
+
+        gl.uniform3fv(uPickColorLoc, b.pickColor);
+        gl.drawElements(gl.TRIANGLES, b.length, gl.UNSIGNED_SHORT, 0);
+      }
+
+      let pixels = new Uint8Array(4);
+      gl.readPixels(x, canvas.height - y, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+
+      let pickedId = colorToId(pixels);
+      return pickedId;
+    }
+
+    //mouse interaction for selecting objects
+    canvas.addEventListener("click", (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+      const pickedId = pickObjectAt(mouseX, mouseY);
+
+      selectedObjectIndex = buffers.findIndex(obj => obj.id === pickedId);
+      selectedObject = buffers[selectedObjectIndex] || null;
+      console.log("Picked object:", selectedObject ? selectedObject.id : "none");
+    });
+
+
+    let startTime = Date.now();
+
+    function render() {
+      gl.useProgram(program);
+      gl.clearColor(0.0, 0.0, 0.0, 1.0);
+      gl.clearDepth(1.0);
+      gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT); 
+      gl.enable(gl.DEPTH_TEST);
+      gl.depthFunc(gl.LESS);
+
+      //for the opacity stuff
+      gl.enable(gl.BLEND);
+      gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+
+      // Set projection matrix uniform once. ain't need it for all
+      gl.uniformMatrix4fv(uPM, false, proj);
+
+      // Camera transform (modelViewMatrix)
+      let modelViewMatrix = mat4Translate(mat4Identity(), [camX, camY, camZ]);
+      gl.uniformMatrix4fv(uMVM, false, modelViewMatrix);
+
+      let time = (Date.now() - startTime) / 1000;  // seconds
+      //for selected obj
+      let pulseOpacity = 0.75 + 0.25 * Math.sin(time * 5);
+
+      for (let i = 0; i < buffers.length; i++) {
+        let b = buffers[i];
+        let transformMatrix = b.getFullTransformMatrix();
+
+        if (b === selectedObject) { //only does this for the ONE selected obj
+          gl.disable(gl.CULL_FACE);
+          gl.uniform1f(uOpacityLoc, pulseOpacity);
+
+          gl.uniformMatrix4fv(uMTM, false, transformMatrix);
+
+          gl.bindBuffer(gl.ARRAY_BUFFER, b.vbo);
+          gl.enableVertexAttribArray(posLoc);
+          gl.vertexAttribPointer(posLoc, 3, gl.FLOAT, false, 0, 0);
+
+          gl.bindBuffer(gl.ARRAY_BUFFER, b.nbo);
+          gl.enableVertexAttribArray(colorLoc);
+          gl.vertexAttribPointer(colorLoc, 3, gl.FLOAT, false, 0, 0);
+
+          gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, b.ibo);
+          gl.drawElements(gl.TRIANGLES, b.length, gl.UNSIGNED_SHORT, 0);
+        } else {
+          // Draw other objects normally NOT WITH THAT OPACITY NONSENSE 
+          gl.uniform1f(uOpacityLoc, 1.0);
+          gl.disable(gl.CULL_FACE);
+          gl.enableVertexAttribArray(colorLoc);
+
+          gl.uniformMatrix4fv(uMTM, false, transformMatrix);
+
+          gl.bindBuffer(gl.ARRAY_BUFFER, b.vbo);
+          gl.enableVertexAttribArray(posLoc);
+          gl.vertexAttribPointer(posLoc, 3, gl.FLOAT, false, 0, 0);
+
+          gl.bindBuffer(gl.ARRAY_BUFFER, b.nbo);
+          gl.enableVertexAttribArray(colorLoc);
+          gl.vertexAttribPointer(colorLoc, 3, gl.FLOAT, false, 0, 0);
+
+          gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, b.ibo);
+          gl.drawElements(gl.TRIANGLES, b.length, gl.UNSIGNED_SHORT, 0);
+        }
+      }
+    }
+
+    // Initialize when page loads
+    window.onload = function () {
+      setInterval(render, 30);
+    }
+
+  </script>
+</body>
+
+</html>
