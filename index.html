@@ -266,8 +266,8 @@ void main() {
     let mouseDown = false, lastX, lastY, cubeRotX = 0, cubeRotY = 0;
     let camX = 0, camY = 0, camZ = -6;
 
-    canvas.addEventListener('mousedown', e => { 
-          const rect = canvas.getBoundingClientRect();
+    canvas.addEventListener('mousedown', e => {
+      const rect = canvas.getBoundingClientRect();
       const mouseX = e.clientX - rect.left;
       const mouseY = e.clientY - rect.top;
       const pickedId = pickObjectAt(mouseX, mouseY);
@@ -275,8 +275,8 @@ void main() {
       selectedObjectIndex = buffers.findIndex(obj => obj.id === pickedId);
       selectedObject = buffers[selectedObjectIndex] || null;
       console.log("Picked object:", selectedObject ? selectedObject.id : "none");
-    mouseDown = true; lastX = e.clientX; lastY = e.clientY;
-     });
+      mouseDown = true; lastX = e.clientX; lastY = e.clientY;
+    });
     canvas.addEventListener('mouseup', () => mouseDown = false);
     canvas.addEventListener('mousemove', e => {
       if (!mouseDown) return;
@@ -368,44 +368,44 @@ void main() {
 
     function drawShapeInScene(s) {
       let transformMatrix = s.getFullTransformMatrix();
-if (s === selectedObject) { //only does this for the ONE selected obj
-          gl.disable(gl.CULL_FACE);
-          gl.uniform1f(uOpacityLoc, pulseOpacity);
+      if (s === selectedObject) { //only does this for the ONE selected obj
+        gl.disable(gl.CULL_FACE);
+        gl.uniform1f(uOpacityLoc, pulseOpacity);
 
-          gl.uniformMatrix4fv(uMTM, false, transformMatrix);
+        gl.uniformMatrix4fv(uMTM, false, transformMatrix);
 
-          gl.bindBuffer(gl.ARRAY_BUFFER, s.vbo);
-          gl.enableVertexAttribArray(posLoc);
-          gl.vertexAttribPointer(posLoc, 3, gl.FLOAT, false, 0, 0);
+        gl.bindBuffer(gl.ARRAY_BUFFER, s.vbo);
+        gl.enableVertexAttribArray(posLoc);
+        gl.vertexAttribPointer(posLoc, 3, gl.FLOAT, false, 0, 0);
 
-          gl.bindBuffer(gl.ARRAY_BUFFER, s.nbo);
-          gl.enableVertexAttribArray(colorLoc);
-          gl.vertexAttribPointer(colorLoc, 3, gl.FLOAT, false, 0, 0);
+        gl.bindBuffer(gl.ARRAY_BUFFER, s.nbo);
+        gl.enableVertexAttribArray(colorLoc);
+        gl.vertexAttribPointer(colorLoc, 3, gl.FLOAT, false, 0, 0);
 
-          gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, s.ibo);
-          gl.drawElements(gl.TRIANGLES, s.length, gl.UNSIGNED_SHORT, 0);
-        } else {
-          // Draw other objects normally NOT WITH THAT OPACITY NONSENSE 
-          gl.uniform1f(uOpacityLoc, 1.0);
-          gl.disable(gl.CULL_FACE);
-          gl.enableVertexAttribArray(colorLoc);
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, s.ibo);
+        gl.drawElements(gl.TRIANGLES, s.length, gl.UNSIGNED_SHORT, 0);
+      } else {
+        // Draw other objects normally NOT WITH THAT OPACITY NONSENSE 
+        gl.uniform1f(uOpacityLoc, 1.0);
+        gl.disable(gl.CULL_FACE);
+        gl.enableVertexAttribArray(colorLoc);
 
-          gl.uniformMatrix4fv(uMTM, false, transformMatrix);
+        gl.uniformMatrix4fv(uMTM, false, transformMatrix);
 
-          gl.bindBuffer(gl.ARRAY_BUFFER, s.vbo);
-          gl.enableVertexAttribArray(posLoc);
-          gl.vertexAttribPointer(posLoc, 3, gl.FLOAT, false, 0, 0);
+        gl.bindBuffer(gl.ARRAY_BUFFER, s.vbo);
+        gl.enableVertexAttribArray(posLoc);
+        gl.vertexAttribPointer(posLoc, 3, gl.FLOAT, false, 0, 0);
 
-          gl.bindBuffer(gl.ARRAY_BUFFER, s.nbo);
-          gl.enableVertexAttribArray(colorLoc);
-          gl.vertexAttribPointer(colorLoc, 3, gl.FLOAT, false, 0, 0);
+        gl.bindBuffer(gl.ARRAY_BUFFER, s.nbo);
+        gl.enableVertexAttribArray(colorLoc);
+        gl.vertexAttribPointer(colorLoc, 3, gl.FLOAT, false, 0, 0);
 
-          gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, s.ibo);
-          gl.drawElements(gl.TRIANGLES, s.length, gl.UNSIGNED_SHORT, 0);
-        }
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, s.ibo);
+        gl.drawElements(gl.TRIANGLES, s.length, gl.UNSIGNED_SHORT, 0);
+      }
 
-      if(s.children && s.children.length > 0) {
-        for(j = 0; j < s.children.length; j++) {
+      if (s.children && s.children.length > 0) {
+        for (j = 0; j < s.children.length; j++) {
           drawShape(s.children[j]);
         }
       }
@@ -416,7 +416,7 @@ if (s === selectedObject) { //only does this for the ONE selected obj
       gl.useProgram(program);
       gl.clearColor(0.0, 0.0, 0.0, 1.0);
       gl.clearDepth(1.0);
-      gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT); 
+      gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
       gl.enable(gl.DEPTH_TEST);
       gl.depthFunc(gl.LESS);
 
