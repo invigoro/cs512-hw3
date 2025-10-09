@@ -151,9 +151,7 @@ void main() {
 
     let program, posLoc, colorLoc, uMVM, uPM, uMTM, uOpacityLoc;
     let tetvbo, tetnbo, tetibo;
-    let buffers = [];
-    let rotMats = [];
-    let posMats = [];
+    let shapesGlobal = [];
     let selectedObject = null;
     let selectedObjectIndex = null;
     let curId = 0;
@@ -179,8 +177,7 @@ void main() {
       let bibo = gl.createBuffer();
       gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, bibo);
       gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indices, gl.STATIC_DRAW);
-      buffers.push(new shape(bvbo, bnbo, bibo, indices.length, getNewId()));
-      rotMats.push(null);
+      return new shape(bvbo, bnbo, bibo, indices.length, getNewId());
     }
 
     function createShape(shapeName = null) {
@@ -197,11 +194,18 @@ void main() {
         case "Torus": shape = createTorus(); break;
         case "Sphere": shape = createSphere(); break;
       }
-      initBuffer(shape.positions, shape.colors, shape.indices);
+      let shapeBuffer = initBuffer(shape.positions, shape.colors, shape.indices);
+      if(selectedObject) {
+        selectedObject.children.push(shapeBuffer);
+        shape.parent = selectedObject;
+      }
+      else {
+        shapesGlobal.push(shapeBuffer);
+      }
     }
 
     function initAllBuffers() {
-      buffers = [];
+      shapesGlobal = [];
       //createShape("Cube");
       createShape("Tetrahedron");
       // createShape("Cylinder");
@@ -272,8 +276,8 @@ void main() {
       const mouseY = e.clientY - rect.top;
       const pickedId = pickObjectAt(mouseX, mouseY);
 
-      selectedObjectIndex = buffers.findIndex(obj => obj.id === pickedId);
-      selectedObject = buffers[selectedObjectIndex] || null;
+      selectedObjectIndex = shapesGlobal.findIndex(obj => obj.id === pickedId);
+      selectedObject = shapesGlobal[selectedObjectIndex] || null;
       console.log("Picked object:", selectedObject ? selectedObject.id : "none");
       mouseDown = true; lastX = e.clientX; lastY = e.clientY;
     });
@@ -338,8 +342,8 @@ void main() {
       gl.uniformMatrix4fv(uPickPM, false, proj);
       gl.uniformMatrix4fv(uPickMVM, false, mvMatrix);
 
-      for (let i = 0; i < buffers.length; i++) {
-        const b = buffers[i];
+      for (let i = 0; i < shapesGlobal.length; i++) {
+        const b = shapesGlobal[i];
 
         let transformMatrix = b.getFullTransformMatrix(b);
         gl.uniformMatrix4fv(uPickMTM, false, transformMatrix);
@@ -406,7 +410,8 @@ void main() {
 
       if (s.children && s.children.length > 0) {
         for (j = 0; j < s.children.length; j++) {
-          drawShape(s.children[j]);
+          console.log(s.children[j]);
+          drawShapeInScene(s.children[j]);
         }
       }
     }
@@ -435,45 +440,9 @@ void main() {
       //for selected obj
       pulseOpacity = 0.75 + 0.25 * Math.sin(time * 5);
 
-      for (let i = 0; i < buffers.length; i++) {
-        let b = buffers[i];
+      for (let i = 0; i < shapesGlobal.length; i++) {
+        let b = shapesGlobal[i];
         drawShapeInScene(b);
-        //let transformMatrix = b.getFullTransformMatrix();
-        // if (b === selectedObject) { //only does this for the ONE selected obj
-        //   gl.disable(gl.CULL_FACE);
-        //   gl.uniform1f(uOpacityLoc, pulseOpacity);
-
-        //   gl.uniformMatrix4fv(uMTM, false, transformMatrix);
-
-        //   gl.bindBuffer(gl.ARRAY_BUFFER, b.vbo);
-        //   gl.enableVertexAttribArray(posLoc);
-        //   gl.vertexAttribPointer(posLoc, 3, gl.FLOAT, false, 0, 0);
-
-        //   gl.bindBuffer(gl.ARRAY_BUFFER, b.nbo);
-        //   gl.enableVertexAttribArray(colorLoc);
-        //   gl.vertexAttribPointer(colorLoc, 3, gl.FLOAT, false, 0, 0);
-
-        //   gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, b.ibo);
-        //   gl.drawElements(gl.TRIANGLES, b.length, gl.UNSIGNED_SHORT, 0);
-        // } else {
-        //   // Draw other objects normally NOT WITH THAT OPACITY NONSENSE 
-        //   gl.uniform1f(uOpacityLoc, 1.0);
-        //   gl.disable(gl.CULL_FACE);
-        //   gl.enableVertexAttribArray(colorLoc);
-
-        //   gl.uniformMatrix4fv(uMTM, false, transformMatrix);
-
-        //   gl.bindBuffer(gl.ARRAY_BUFFER, b.vbo);
-        //   gl.enableVertexAttribArray(posLoc);
-        //   gl.vertexAttribPointer(posLoc, 3, gl.FLOAT, false, 0, 0);
-
-        //   gl.bindBuffer(gl.ARRAY_BUFFER, b.nbo);
-        //   gl.enableVertexAttribArray(colorLoc);
-        //   gl.vertexAttribPointer(colorLoc, 3, gl.FLOAT, false, 0, 0);
-
-        //   gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, b.ibo);
-        //   gl.drawElements(gl.TRIANGLES, b.length, gl.UNSIGNED_SHORT, 0);
-        // }
       }
     }
 
