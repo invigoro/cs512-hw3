@@ -19,7 +19,9 @@ class shape {
   scaX = 1;
   scaY = 1;
   scaZ = 1;
-
+  parent = null;
+  children = [];
+  nodeTransformMatrix = mat4Identity();
 
   getRotationMatrix() {
     const cx = Math.cos(this.rotY), sx = Math.sin(this.rotY);
@@ -65,9 +67,11 @@ class shape {
   let rotationMatrix = this.getRotationMatrix();
   let translationMatrix = this.getTranslationMatrix();
 
-  let transformMatrix = mat4Scale(mat4Identity(), scaleVector);
+  let transformMatrix = this.parent ? this.parent.nodeTransformMatrix : mat4Identity();
+  transformMatrix = mat4Scale(transformMatrix, scaleVector);
   transformMatrix = multiplyMat4(rotationMatrix, transformMatrix);
   transformMatrix = multiplyMat4(translationMatrix, transformMatrix);
+  this.nodeTransformMatrix = transformMatrix;
   return transformMatrix;
 }
 
