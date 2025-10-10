@@ -110,6 +110,8 @@ setColors(c1, c2) {
 gl.bindBuffer(gl.ARRAY_BUFFER, this.nbo);
   this.color1 = c1;
   this.color2 = c2;
+  console.log(c1);
+  console.log(c2);
   let colors = interpolateColors(this.vertexCount, 0, c1, c2);
   gl.bufferData(gl.ARRAY_BUFFER, colors, gl.STATIC_DRAW)
 }

@@ -196,7 +196,7 @@ void main() {
       let bibo = gl.createBuffer();
       gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, bibo);
       gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indices, gl.STATIC_DRAW);
-      return new shape(bvbo, bnbo, bibo, indices.length, positions.length /3, getNewId(), colors[0], colors[colors.length - 1]);
+      return new shape(bvbo, bnbo, bibo, indices.length, positions.length /3, getNewId(), colors.slice(0, 3), colors.slice(colors.length - 3));
     }
 
     function createShape(shapeName = null, parent = null) {
@@ -298,10 +298,9 @@ void main() {
     let camX = 0, camY = 0, camZ = -6;
 
 function rgbToHex(rgbArray) {
-  console.log(rgbArray);
-  const r = rgbArray[0] * 255;
-  const g = rgbArray[1] * 255;
-  const b = rgbArray[2] * 255;
+  const r = Math.round(rgbArray[0] * 255);
+  const g = Math.round(rgbArray[1] * 255);
+  const b = Math.round(rgbArray[2] * 255);
 
   // Convert each component to hex and pad with a leading zero if necessary
   const toHex = (c) => {
