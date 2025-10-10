@@ -193,7 +193,7 @@ void main() {
       return new shape(bvbo, bnbo, bibo, indices.length, getNewId());
     }
 
-    function createShape(shapeName = null) {
+    function createShape(shapeName = null, parent = null) {
       if (shapeName == null) {
         shapeName = document.getElementById("primitiveName").value;
       }
@@ -212,15 +212,72 @@ void main() {
         selectedObject.children.push(shapeBuffer);
         shapeBuffer.parent = selectedObject;
       }
+      else if(parent) {
+        parent.children.push(shapeBuffer);
+        shapeBuffer.parent = parent;
+      }
       else {
         shapesGlobal.push(shapeBuffer);
       }
+      return shapeBuffer;
     }
 
     function initAllBuffers() {
       shapesGlobal = [];
-      //createShape("Cube");
-      createShape("Tetrahedron");
+
+      //Main Planet
+      let s1 = createShape("Sphere");
+      s1.rotZ = -.5;
+      s1.scaX = 0.5;
+      s1.scaY = 0.5;
+      s1.scaZ = 0.5;
+      s1.rotZSpeed = 20.0;
+
+      //Terrain
+      let co1 = createShape("Cone", s1);
+      co1.posY = 0.8;
+      co1.scaY = 0.5;
+      co1.scaX = 0.5;
+      co1.scaZ = 0.5;
+      let co2 = createShape("Cone", s1);
+      co2.posY = -0.8;
+      co2.scaY = 0.5;
+      co2.scaX = 0.5;
+      co2.scaZ = 0.5;
+      co2.rotX = Math.PI;
+      // let t1 = createShape("Torus", s1);
+      // t1.scaX = 2;
+      // t1.scaY = 1;
+      // t1.scaZ = 2;
+
+      //Planet 2
+      let s2 = createShape("Sphere", s1);
+      s2.posX = 3;
+      s2.scaX = 0.3;
+      s2.scaY = 0.3;
+      s2.scaZ = 0.3;
+      s2.rotZSpeed = 30;
+
+      //Planet 2 rings
+      let t1 = createShape("Torus", s2);
+      t1.rotY = 90;
+      t1.scaX = 2;
+      t1.scaZ = 2;
+      t1.rotZSpeed = 25;
+
+      //Planet 2 Moon
+      let s3 = createShape("Sphere", s2);
+      s3.posX = 4;
+      s3.scaX = 0.5;
+      s3.scaY = 0.5;
+      s3.scaZ = 0.5;
+
+      //Planet 2 Moon orbital obj
+
+
+
+      //For testing purposes
+      // createShape("Cube");
       // createShape("Cylinder");
       // createShape("Cylinder");
       // createShape("Cone");
@@ -283,6 +340,12 @@ void main() {
     let mouseDown = false, lastX, lastY, cubeRotX = 0, cubeRotY = 0;
     let camX = 0, camY = 0, camZ = -6;
 
+    function setShapeHtmlProperties(s) {
+      document.getElementById("rot-x-speed").value = s.rotXSpeed;
+      document.getElementById("rot-y-speed").value = s.rotYSpeed;
+      document.getElementById("rot-z-speed").value = s.rotZSpeed;
+    }
+
     canvas.addEventListener('mousedown', e => {
       const rect = canvas.getBoundingClientRect();
       const mouseX = e.clientX - rect.left;
@@ -296,6 +359,7 @@ void main() {
       if (selectedObject) {
         document.getElementById("primitive-insert").innerText = "Add Child";
         document.getElementById("shape-properties").style = "display:flex;";
+        setShapeHtmlProperties(selectedObject);
       }
       else {
         document.getElementById("primitive-insert").innerText = "Add New Shape";
