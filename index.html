@@ -477,7 +477,7 @@ void main() {
     let pulseOpacity = 1;
 
     function drawShapeInScene(s) {
-      let transformMatrix = s.getFullTransformMatrix(s == selectedObject, timeDiff);
+      let transformMatrix = s.getFullTransformMatrix(selectedObject == null || s == selectedObject, timeDiff);
       if (s === selectedObject) { //only does this for the ONE selected obj
         gl.disable(gl.CULL_FACE);
         gl.uniform1f(uOpacityLoc, pulseOpacity);

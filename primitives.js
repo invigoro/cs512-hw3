@@ -24,7 +24,7 @@ class shape {
   nodeTransformMatrix = mat4Identity();
 
   //animation properties
-  isSelectedObj = false;
+  canMove = false;
   timeDiff = 0.0;
   rotXSpeed = 0;
   rotYSpeed= 0;
@@ -69,10 +69,10 @@ class shape {
     return [this.scaX, this.scaY, this.scaZ];
   }
 
-  getFullTransformMatrix(isSelectedObj = false, timeDiff = 0.0) {
+  getFullTransformMatrix(canMove = true, timeDiff = 0.0) {
 
     //first set local vals for potential animation
-    this.isSelectedObj = isSelectedObj;
+    this.canMove = canMove;
     this.timeDiff = timeDiff;
 
   // Apply parent transform
@@ -85,7 +85,7 @@ class shape {
 getLocalTransformMatrix() {
   //apply anims
   let rotCoeff = 0.1; //arbitrary const for now, idk how fast to make this lol
-  if(!this.isSelectedObj){ //ignore on currently selected obj, otherwise how you gonna do your transforms? riddle me that
+  if(this.canMove){ //ignore on currently selected obj, otherwise how you gonna do your transforms? riddle me that
     this.rotX += this.rotXSpeed * (this.timeDiff * rotCoeff);
     this.rotY += this.rotYSpeed * (this.timeDiff * rotCoeff);
     this.rotZ += this.rotZSpeed * (this.timeDiff * rotCoeff);
