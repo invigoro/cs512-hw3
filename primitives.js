@@ -1,11 +1,12 @@
 
 //for storing buffer objs and individual shape data (rot, pos, scale)
 class shape {
-  constructor(bvbo, bnbo, bibo, len, id, color1 = null, color2 = null) {
+  constructor(bvbo, bnbo, bibo, len, vertexCount, id, color1 = null, color2 = null) {
     this.vbo = bvbo;
     this.nbo = bnbo;
     this.ibo = bibo;
     this.length = len;
+    this.vertexCount = vertexCount;
     this.id = id;
     this.pickColor = idToColor(id); //this is just id encoded as a color for the onclick event
     //redudancy makes it so the conversion has to happen less frequently. Not that this is computationally intensive lol
@@ -109,7 +110,7 @@ setColors(c1, c2) {
 gl.bindBuffer(gl.ARRAY_BUFFER, this.nbo);
   this.color1 = c1;
   this.color2 = c2;
-  let colors = interpolateColors(this.length, 0, c1, c2);
+  let colors = interpolateColors(this.vertexCount, 0, c1, c2);
   gl.bufferData(gl.ARRAY_BUFFER, colors, gl.STATIC_DRAW)
 }
 
@@ -166,40 +167,34 @@ const tetrahedronIndices = new Uint16Array([
   0, 2, 3,
   1, 3, 2
 ]);
-function interpolateColors(length = 1, minBrightness = 0.1, color1 = null, color2 = null) {
+function interpolateColors(count = 1, minBrightness = 0.1, color1 = null, color2 = null) {
   //make this a minimum avg brightness of .5 by default
-  let colors = []
-  let c1, c2, c3;
-  let e1, e2, e3;
-  if (color1) {
-    c1 = color1[0]; c2 = color1[1]; c3 = color1[2];
-  }
-  else {
-    do {
-      c1 = Math.random();
-      c2 = Math.random();
-      c3 = Math.random();
-    } while ((c1 + c2 + c3) / 3 < minBrightness)
+  const colors = [];
+  
+  // Ensure we have two valid colors
+  let [r1, g1, b1] = color1 ?? randomBrightColor(minBrightness);
+  let [r2, g2, b2] = color2 ?? randomBrightColor(minBrightness);
+
+  // Interpolate smoothly from color1 to color2
+  for (let i = 0; i < count; i++) {
+    const t = i / (count - 1); // from 0 to 1
+    const r = r1 + t * (r2 - r1);
+    const g = g1 + t * (g2 - g1);
+    const b = b1 + t * (b2 - b1);
+    colors.push(r, g, b);
   }
 
-  if (color2) {
-    e1 = color2[0]; e2 = color2[1]; e3 = color2[2];
-  }
-  else {
-    do {
-      e1 = Math.random();
-      e2 = Math.random();
-      e3 = Math.random();
-    } while ((e1 + e2 + e3) / 3 < minBrightness)
-  }
-  for (i = 0; i < length; i++) {
-    //interpolate between the two random colors
-    i1 = c1 + ((e1 - c1) / length) * (i + 1);
-    i2 = c2 + ((e2 - c2) / length) * (i + 1);
-    i3 = c3 + ((e3 - c3) / length) * (i + 1);
-    colors.push(i1, i2, i3);
-  }
   return new Float32Array(colors);
+}
+
+function randomBrightColor(minBrightness = 0.1) {
+  let r, g, b;
+  do {
+    r = Math.random();
+    g = Math.random();
+    b = Math.random();
+  } while ((r + g + b) / 3 < minBrightness);
+  return [r, g, b];
 }
 //Scale by factor
 function scale(array, factor = 1) {

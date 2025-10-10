@@ -196,7 +196,7 @@ void main() {
       let bibo = gl.createBuffer();
       gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, bibo);
       gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indices, gl.STATIC_DRAW);
-      return new shape(bvbo, bnbo, bibo, indices.length, getNewId(), colors[0], colors[colors.length - 1]);
+      return new shape(bvbo, bnbo, bibo, indices.length, positions.length /3, getNewId(), colors[0], colors[colors.length - 1]);
     }
 
     function createShape(shapeName = null, parent = null) {
