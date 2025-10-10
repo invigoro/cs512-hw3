@@ -23,6 +23,13 @@ class shape {
   children = [];
   nodeTransformMatrix = mat4Identity();
 
+  //animation properties
+  isSelectedObj = false;
+  timeDiff = 0.0;
+  rotXSpeed = 0;
+  rotYSpeed= 0;
+  rotZSpeed = 0;
+
   getRotationMatrix() {
     const cx = Math.cos(this.rotY), sx = Math.sin(this.rotY);
     const cy = Math.cos(this.rotX), sy = Math.sin(this.rotX);
@@ -62,7 +69,12 @@ class shape {
     return [this.scaX, this.scaY, this.scaZ];
   }
 
-  getFullTransformMatrix() {
+  getFullTransformMatrix(isSelectedObj = false, timeDiff = 0.0) {
+
+    //first set local vals for potential animation
+    this.isSelectedObj = isSelectedObj;
+    this.timeDiff = timeDiff;
+
   // Apply parent transform
   this.nodeTransformMatrix = this.parent
     ? multiplyMat4(this.parent.getFullTransformMatrix(), this.getLocalTransformMatrix())
@@ -71,6 +83,15 @@ class shape {
   return this.nodeTransformMatrix;
 }
 getLocalTransformMatrix() {
+  //apply anims
+  let rotCoeff = 0.1; //arbitrary const for now, idk how fast to make this lol
+  if(!this.isSelectedObj){ //ignore on currently selected obj, otherwise how you gonna do your transforms? riddle me that
+    this.rotX += this.rotXSpeed * (this.timeDiff * rotCoeff);
+    this.rotY += this.rotYSpeed * (this.timeDiff * rotCoeff);
+    this.rotZ += this.rotZSpeed * (this.timeDiff * rotCoeff);
+  }
+
+  //then calculate the matrices
   const T = this.getTranslationMatrix();        // pos, mat4Translate(mat4Identity(), [posX,posY,posZ])
   const R = this.getRotationMatrix();           // rot
   const S = mat4Scale(mat4Identity(), this.getScaleVector()); //scale

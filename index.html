@@ -64,12 +64,24 @@
         </select>
       </div>
 
-      <button id="primitive-insert" onclick="createShape();">Add To Scene</button>
+      <button id="primitive-insert" onclick="createShape();">Add New Shape</button>
       <div>
         <p>Choose Transform Type</p>
         <button id="rotate-button" onclick="setMode('rotate')">Rotate</button>
         <button id="translate-button" onclick="setMode('translate')">Translate</button>
         <button id="scale-button" onclick="setMode('scale')">Scale</button>
+      </div>
+
+      <div id="shape-properties" style="display: none;">
+        <div id="shape-rotation-speed">
+          <p>Rotation Speed</p>
+          <label for="rot-x-speed">X</label>
+          <input type="range" id="rot-x-speed" name="rot-x-speed" min="0" max="100" value="0">
+          <label for="rot-y-speed">Y</label>
+          <input type="range" id="rot-y-speed" name="rot-y-speed" min="0" max="100" value="0">
+          <label for="rot-z-speed">Z</label>
+          <input type="range" id="rot-z-speed" name="rot-z-speed" min="0" max="100" value="0">
+        </div>
       </div>
     </div>
   </div>
@@ -277,9 +289,19 @@ void main() {
       const mouseY = e.clientY - rect.top;
       const pickedId = pickObjectAt(mouseX, mouseY);
 
-selectedObject = findShapeById(pickedId, shapesGlobal);
-selectedObjectIndex = selectedObject ? selectedObject.id : null;
+      selectedObject = findShapeById(pickedId, shapesGlobal);
+      selectedObjectIndex = selectedObject ? selectedObject.id : null;
       console.log("Picked object:", selectedObject ? selectedObject.id : "none");
+
+      if (selectedObject) {
+        document.getElementById("primitive-insert").innerText = "Add Child";
+        document.getElementById("shape-properties").style = "display:flex;";
+      }
+      else {
+        document.getElementById("primitive-insert").innerText = "Add New Shape";
+        document.getElementById("shape-properties").style = "display:none;";
+      }
+
       mouseDown = true; lastX = e.clientX; lastY = e.clientY;
     });
     canvas.addEventListener('mouseup', () => mouseDown = false);
@@ -292,29 +314,29 @@ selectedObjectIndex = selectedObject ? selectedObject.id : null;
         selectedObject.rotY += dx * 0.01;
         selectedObject.rotX += dy * 0.01;
       }
-else if (mode == "translate") {
-    // Mouse delta in screen space
-    let dxWorld = dx * 0.01;
-    let dyWorld = -dy * 0.01;
+      else if (mode == "translate") {
+        // Mouse delta in screen space
+        let dxWorld = dx * 0.01;
+        let dyWorld = -dy * 0.01;
 
-    // If object has parent, transform delta into local space
-    let parentMatrix = selectedObject.parent ? selectedObject.parent.getFullTransformMatrix() : mat4Identity();
-    let invParent = mat4Inverse(parentMatrix);
+        // If object has parent, transform delta into local space
+        let parentMatrix = selectedObject.parent ? selectedObject.parent.getFullTransformMatrix() : mat4Identity();
+        let invParent = mat4Inverse(parentMatrix);
 
-    // Treat delta as a vector in world space, w=0
-    let deltaVec = [dxWorld, dyWorld, 0, 0];
+        // Treat delta as a vector in world space, w=0
+        let deltaVec = [dxWorld, dyWorld, 0, 0];
 
-    // Multiply by inverse parent to get local delta
-    let localDelta = [
-        invParent[0]*deltaVec[0] + invParent[4]*deltaVec[1] + invParent[8]*deltaVec[2],
-        invParent[1]*deltaVec[0] + invParent[5]*deltaVec[1] + invParent[9]*deltaVec[2],
-        invParent[2]*deltaVec[0] + invParent[6]*deltaVec[1] + invParent[10]*deltaVec[2],
-    ];
+        // Multiply by inverse parent to get local delta
+        let localDelta = [
+          invParent[0] * deltaVec[0] + invParent[4] * deltaVec[1] + invParent[8] * deltaVec[2],
+          invParent[1] * deltaVec[0] + invParent[5] * deltaVec[1] + invParent[9] * deltaVec[2],
+          invParent[2] * deltaVec[0] + invParent[6] * deltaVec[1] + invParent[10] * deltaVec[2],
+        ];
 
-    selectedObject.posX += localDelta[0];
-    selectedObject.posY += localDelta[1];
-    selectedObject.posZ += localDelta[2];
-}
+        selectedObject.posX += localDelta[0];
+        selectedObject.posY += localDelta[1];
+        selectedObject.posZ += localDelta[2];
+      }
       else if (mode == "scale") {
         const scaleDiff = 1 - dy * 0.01;
 
@@ -338,6 +360,31 @@ else if (mode == "translate") {
       }
     });
 
+    //shape properties input
+    const rotXSpeed = document.getElementById('rot-x-speed');
+    const rotYSpeed = document.getElementById('rot-y-speed');
+    const rotZSpeed = document.getElementById('rot-z-speed');
+
+    //all rotation speed inputs
+    rotXSpeed.addEventListener('input', function() {
+        let rotXSpeedVal = this.value;
+        if(selectedObject) {
+          selectedObject.rotXSpeed = rotXSpeedVal;
+        }
+    });
+    rotYSpeed.addEventListener('input', function() {
+        let rotYSpeedVal = this.value;
+        if(selectedObject) {
+          selectedObject.rotYSpeed = rotYSpeedVal;
+        }
+    });
+    rotZSpeed.addEventListener('input', function() {
+        let rotZSpeedVal = this.value;
+        if(selectedObject) {
+          selectedObject.rotZSpeed = rotZSpeedVal;
+        }
+    });
+
     let proj;
     let modelViewMatrix;
     let modelTransformationMatrix;
@@ -354,15 +401,15 @@ else if (mode == "translate") {
 
     //depth-first search, may be a more efficient way to do this
     function findShapeById(id, shapeArray = shapesGlobal) {
-  for (let s of shapeArray) {
-    if (s.id === id) return s;
-    if (s.children && s.children.length > 0) {
-      let found = findShapeById(id, s.children);
-      if (found) return found;
+      for (let s of shapeArray) {
+        if (s.id === id) return s;
+        if (s.children && s.children.length > 0) {
+          let found = findShapeById(id, s.children);
+          if (found) return found;
+        }
+      }
+      return null;
     }
-  }
-  return null;
-}
 
     function drawShapePickObject(s) {
       let transformMatrix = s.getFullTransformMatrix();
@@ -410,11 +457,13 @@ else if (mode == "translate") {
     }
 
     let startTime = Date.now();
-    let time = startTime;
+    let time = startTime; //total time passed
+    let prevFrameTime = Date.now();
+    let timeDiff = Date.now(); //time since last frame
     let pulseOpacity = 1;
 
     function drawShapeInScene(s) {
-      let transformMatrix = s.getFullTransformMatrix();
+      let transformMatrix = s.getFullTransformMatrix(s == selectedObject, timeDiff);
       if (s === selectedObject) { //only does this for the ONE selected obj
         gl.disable(gl.CULL_FACE);
         gl.uniform1f(uOpacityLoc, pulseOpacity);
@@ -478,7 +527,9 @@ else if (mode == "translate") {
       let modelViewMatrix = mat4Translate(mat4Identity(), [camX, camY, camZ]);
       gl.uniformMatrix4fv(uMVM, false, modelViewMatrix);
 
-      time = (Date.now() - startTime) / 1000;  // seconds
+      time = (Date.now() - startTime) / 1000;  // seconds passed total
+      timeDiff = (Date.now() - prevFrameTime) / 1000; //seconds since last frame
+      prevFrameTime = Date.now();
       //for selected obj
       pulseOpacity = 0.75 + 0.25 * Math.sin(time * 5);
 
