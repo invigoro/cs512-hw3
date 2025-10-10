@@ -80,6 +80,13 @@
           <label for="rot-z-speed">Z</label>
           <input type="range" id="rot-z-speed" name="rot-z-speed" min="0" max="100" value="0">
         </div>
+        <div id="shape-colors">
+          <p>Colors</p>
+          <label for="color-1">Primary</label>
+          <input type="color" id="color-1">
+          <label for="color-2">Secondary</label>
+          <input type="color" id="color-2">
+        </div>
       </div>
     </div>
   </div>
@@ -189,7 +196,7 @@ void main() {
       let bibo = gl.createBuffer();
       gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, bibo);
       gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indices, gl.STATIC_DRAW);
-      return new shape(bvbo, bnbo, bibo, indices.length, getNewId());
+      return new shape(bvbo, bnbo, bibo, indices.length, getNewId(), colors[0], colors[colors.length - 1]);
     }
 
     function createShape(shapeName = null, parent = null) {
@@ -290,10 +297,44 @@ void main() {
     let mouseDown = false, lastX, lastY, cubeRotX = 0, cubeRotY = 0;
     let camX = 0, camY = 0, camZ = -6;
 
+function rgbToHex(rgbArray) {
+  console.log(rgbArray);
+  const r = rgbArray[0] * 255;
+  const g = rgbArray[1] * 255;
+  const b = rgbArray[2] * 255;
+
+  // Convert each component to hex and pad with a leading zero if necessary
+  const toHex = (c) => {
+    const hex = c.toString(16);
+    return hex.length === 1 ? '0' + hex : hex;
+  };
+
+  return '#' + toHex(r) + toHex(g) + toHex(b);
+}
+function hexToRgbArray(hex) {
+  // Expand shorthand form (e.g. "03F") to full form (e.g. "0033FF")
+  const shorthandRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i;
+  hex = hex.replace(shorthandRegex, function(m, r, g, b) {
+    return r + r + g + g + b + b;
+  });
+
+  // Use a regular expression to match the hex pairs
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+
+  // If the hex string is valid, return the RGB array
+  return result ? [
+    parseInt(result[1], 16) / 255.0, // Convert red hex pair to integer then dec
+    parseInt(result[2], 16) / 255.0, 
+    parseInt(result[3], 16) / 255.0 
+  ] : null;
+}
+
     function setShapeHtmlProperties(s) {
       document.getElementById("rot-x-speed").value = s.rotXSpeed;
       document.getElementById("rot-y-speed").value = s.rotYSpeed;
       document.getElementById("rot-z-speed").value = s.rotZSpeed;
+      document.getElementById("color-1").value = rgbToHex(s.color1);
+      document.getElementById("color-2").value = rgbToHex(s.color2);
     }
 
     canvas.addEventListener('mousedown', e => {
@@ -308,7 +349,7 @@ void main() {
 
       if (selectedObject) {
         document.getElementById("primitive-insert").innerText = "Add Child";
-        document.getElementById("shape-properties").style = "display:flex;";
+        document.getElementById("shape-properties").style = "display:block;";
         setShapeHtmlProperties(selectedObject);
       }
       else {
@@ -396,6 +437,24 @@ void main() {
         let rotZSpeedVal = this.value;
         if(selectedObject) {
           selectedObject.rotZSpeed = rotZSpeedVal;
+        }
+    });
+    //color inputs
+    const color1Input = document.getElementById('color-1');
+    const color2Input = document.getElementById('color-2');
+    color1Input.addEventListener('input', function() {
+        let c1 = hexToRgbArray(this.value);
+        let c2 = hexToRgbArray(color2Input.value);
+        if(selectedObject) {
+          selectedObject.setColors(c1, c2);
+        }
+    });
+    
+    color2Input.addEventListener('input', function() {
+        let c2 = hexToRgbArray(this.value);
+        let c1 = hexToRgbArray(color1Input.value);
+        if(selectedObject) {
+          selectedObject.setColors(c1, c2);
         }
     });
 

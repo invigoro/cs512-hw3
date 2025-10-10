@@ -8,6 +8,7 @@ function drawPlanets() {
       p1.rotZSpeed = 5.0;
       p1.rotYSpeed = 1.0;
       p1.rotXSpeed = 1.0;
+      p1.setColors([1, 1, 1], [1,1,1]);
 
       //Terrain
       let co1 = createShape("Cone", p1);
@@ -47,6 +48,7 @@ function drawPlanets() {
       p2.scaY = 0.3;
       p2.scaZ = 0.3;
       p2.rotZSpeed = 10;
+      p2.setColors([1, 0, 0], [1, 0, 0])
 
       //Planet 2 rings
       let t1 = createShape("Torus", p2);

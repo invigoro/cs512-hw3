@@ -1,7 +1,7 @@
 
 //for storing buffer objs and individual shape data (rot, pos, scale)
 class shape {
-  constructor(bvbo, bnbo, bibo, len, id) {
+  constructor(bvbo, bnbo, bibo, len, id, color1 = null, color2 = null) {
     this.vbo = bvbo;
     this.nbo = bnbo;
     this.ibo = bibo;
@@ -9,6 +9,8 @@ class shape {
     this.id = id;
     this.pickColor = idToColor(id); //this is just id encoded as a color for the onclick event
     //redudancy makes it so the conversion has to happen less frequently. Not that this is computationally intensive lol
+    this.color1 = color1;
+    this.color2 = color2;
   }
   posX = 0;
   posY = 0;
@@ -29,6 +31,10 @@ class shape {
   rotXSpeed = 0;
   rotYSpeed= 0;
   rotZSpeed = 0;
+
+  //colors
+  color1;
+  color2;
 
   getRotationMatrix() {
     const cx = Math.cos(this.rotY), sx = Math.sin(this.rotY);
@@ -99,6 +105,14 @@ getLocalTransformMatrix() {
   // local = T * R * S , scale then rotate then translate
   return multiplyMat4(multiplyMat4(T, R), S);
 }
+setColors(c1, c2) {
+gl.bindBuffer(gl.ARRAY_BUFFER, this.nbo);
+  this.color1 = c1;
+  this.color2 = c2;
+  let colors = interpolateColors(this.length, 0, c1, c2);
+  gl.bufferData(gl.ARRAY_BUFFER, colors, gl.STATIC_DRAW)
+}
+
 
 }
 function idToColor(id) {
@@ -169,7 +183,7 @@ function interpolateColors(length = 1, minBrightness = 0.1, color1 = null, color
   }
 
   if (color2) {
-    c1 = color2[0]; c2 = color2[1]; c3 = color2[2];
+    e1 = color2[0]; e2 = color2[1]; e3 = color2[2];
   }
   else {
     do {
