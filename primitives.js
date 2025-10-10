@@ -63,16 +63,19 @@ class shape {
   }
 
   getFullTransformMatrix() {
-  let scaleVector = this.getScaleVector();
-  let rotationMatrix = this.getRotationMatrix();
-  let translationMatrix = this.getTranslationMatrix();
+  const T = this.getTranslationMatrix();
+  const R = this.getRotationMatrix();
+  const S = mat4Scale(mat4Identity(), this.getScaleVector());
 
-  let transformMatrix = this.parent ? this.parent.nodeTransformMatrix : mat4Identity();
-  transformMatrix = mat4Scale(transformMatrix, scaleVector);
-  transformMatrix = multiplyMat4(rotationMatrix, transformMatrix);
-  transformMatrix = multiplyMat4(translationMatrix, transformMatrix);
-  this.nodeTransformMatrix = transformMatrix;
-  return transformMatrix;
+  // Local transform = T * R * S
+  const localTransform = multiplyMat4(multiplyMat4(T, R), S);
+
+  // Apply parent transform
+  this.nodeTransformMatrix = this.parent
+    ? multiplyMat4(this.parent.getFullTransformMatrix(), localTransform)
+    : localTransform;
+
+  return this.nodeTransformMatrix;
 }
 
 }

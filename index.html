@@ -197,7 +197,7 @@ void main() {
       let shapeBuffer = initBuffer(shape.positions, shape.colors, shape.indices);
       if (selectedObject) {
         selectedObject.children.push(shapeBuffer);
-        shape.parent = selectedObject;
+        shapeBuffer.parent = selectedObject;
       }
       else {
         shapesGlobal.push(shapeBuffer);
@@ -343,7 +343,7 @@ selectedObjectIndex = selectedObject ? selectedObject.id : null;
 }
 
     function drawShapePickObject(s) {
-      let transformMatrix = s.getFullTransformMatrix(s);
+      let transformMatrix = s.getFullTransformMatrix();
       gl.uniformMatrix4fv(uPickMTM, false, transformMatrix);
 
       gl.bindBuffer(gl.ARRAY_BUFFER, s.vbo);
@@ -355,7 +355,7 @@ selectedObjectIndex = selectedObject ? selectedObject.id : null;
       gl.uniform3fv(uPickColorLoc, s.pickColor);
       gl.drawElements(gl.TRIANGLES, s.length, gl.UNSIGNED_SHORT, 0);
       if (s.children && s.children.length > 0) {
-        for (j = 0; j < s.children.length; j++) {
+        for (let j = 0; j < s.children.length; j++) {
           drawShapePickObject(s.children[j]);
         }
       }
@@ -392,6 +392,7 @@ selectedObjectIndex = selectedObject ? selectedObject.id : null;
     let pulseOpacity = 1;
 
     function drawShapeInScene(s) {
+      console.log(s);
       let transformMatrix = s.getFullTransformMatrix();
       if (s === selectedObject) { //only does this for the ONE selected obj
         gl.disable(gl.CULL_FACE);
@@ -430,7 +431,7 @@ selectedObjectIndex = selectedObject ? selectedObject.id : null;
       }
 
       if (s.children && s.children.length > 0) {
-        for (j = 0; j < s.children.length; j++) {
+        for (let j = 0; j < s.children.length; j++) {
           drawShapeInScene(s.children[j]);
         }
       }
