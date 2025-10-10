@@ -53,6 +53,7 @@ function drawPlanets() {
       t1.rotX = 90;
       t1.scaX = 2;
       t1.scaZ = 2;
+      t1.scaY = .2;
       //t1.rotZSpeed = 5;
 
       //Planet 2 Moon
@@ -118,4 +119,40 @@ function drawPlanets() {
       p4m1.scaY = 0.5;
       p4m1.scaZ = 0.5;
       p4m1.rotZSpeed = 10;
+
+      //Space Station
+      let st1 = createShape("Torus", p1);
+      st1.posX = -3;
+      st1.posY = 3;
+      //st1.rotX = Math.PI /2;
+      st1.scaX = 0.2;
+      st1.scaY = 0.2;
+      st1.scaZ = 0.2;
+      st1.rotYSpeed = 30;
+      st1.rotZSpeed = 0;
+      st1.rotXSpeed = 0;
+
+      //Space Station center cylinder
+      let st1cyl1 = createShape("Cylinder", st1);
+      st1cyl1.scaX = 0.4;
+      st1cyl1.scaY = 1;
+      st1cyl1.scaZ = 0.4;
+
+      // Space station ring cylinders
+      let nCylinders = 8;
+      let torusRadius = 1.4;
+
+for (let i = 0; i < nCylinders; i++) {
+    let angle = (i / nCylinders) * 2 * Math.PI;
+    let cx = torusRadius * Math.cos(angle);
+    let cy = torusRadius * Math.sin(angle);
+
+    let cyl = createShape("Cylinder", st1);
+    cyl.posX = cx;
+    cyl.posZ = cy;
+    cyl.posY = 0;       
+    cyl.scaX = 0.2;
+    cyl.scaY = 0.6;
+    cyl.scaZ = 0.2;
+}
 }
