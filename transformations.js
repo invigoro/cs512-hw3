@@ -90,3 +90,42 @@ function mat4Scale(m, s) {
     result[10] *= s[2];
     return result;
 }
+
+function mat4Inverse(m) {
+    const inv = new Float32Array(16);
+    const det =
+        m[0] * (m[5]*m[10] - m[6]*m[9]) -
+        m[1] * (m[4]*m[10] - m[6]*m[8]) +
+        m[2] * (m[4]*m[9] - m[5]*m[8]);
+
+    if (Math.abs(det) < 1e-8) {
+        console.warn("Matrix is singular and cannot be inverted");
+        return mat4Identity();
+    }
+
+    const invDet = 1.0 / det;
+
+    // Compute inverse of upper-left 3x3 (rotation*scale)
+    inv[0] = (m[5]*m[10] - m[6]*m[9]) * invDet;
+    inv[1] = (m[2]*m[9] - m[1]*m[10]) * invDet;
+    inv[2] = (m[1]*m[6] - m[2]*m[5]) * invDet;
+    inv[3] = 0;
+
+    inv[4] = (m[6]*m[8] - m[4]*m[10]) * invDet;
+    inv[5] = (m[0]*m[10] - m[2]*m[8]) * invDet;
+    inv[6] = (m[2]*m[4] - m[0]*m[6]) * invDet;
+    inv[7] = 0;
+
+    inv[8] = (m[4]*m[9] - m[5]*m[8]) * invDet;
+    inv[9] = (m[1]*m[8] - m[0]*m[9]) * invDet;
+    inv[10] = (m[0]*m[5] - m[1]*m[4]) * invDet;
+    inv[11] = 0;
+
+    // Inverse translation
+    inv[12] = -(inv[0]*m[12] + inv[4]*m[13] + inv[8]*m[14]);
+    inv[13] = -(inv[1]*m[12] + inv[5]*m[13] + inv[9]*m[14]);
+    inv[14] = -(inv[2]*m[12] + inv[6]*m[13] + inv[10]*m[14]);
+    inv[15] = 1;
+
+    return inv;
+}

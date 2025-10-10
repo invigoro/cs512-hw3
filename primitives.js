@@ -71,11 +71,11 @@ class shape {
   return this.nodeTransformMatrix;
 }
 getLocalTransformMatrix() {
-  const T = this.getTranslationMatrix();        // mat4Translate(mat4Identity(), [posX,posY,posZ])
-  const R = this.getRotationMatrix();           // 4x4 rotation
-  const S = mat4Scale(mat4Identity(), this.getScaleVector()); // scale matrix
+  const T = this.getTranslationMatrix();        // pos, mat4Translate(mat4Identity(), [posX,posY,posZ])
+  const R = this.getRotationMatrix();           // rot
+  const S = mat4Scale(mat4Identity(), this.getScaleVector()); //scale
 
-  // local = T * R * S  (scale then rotate then translate)
+  // local = T * R * S , scale then rotate then translate
   return multiplyMat4(multiplyMat4(T, R), S);
 }
 

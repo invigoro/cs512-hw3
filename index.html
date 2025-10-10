@@ -292,15 +292,36 @@ selectedObjectIndex = selectedObject ? selectedObject.id : null;
         selectedObject.rotY += dx * 0.01;
         selectedObject.rotX += dy * 0.01;
       }
-      else if (mode == "translate") {
-        selectedObject.posY += -dy * 0.01; //invert since y counts from the top
-        selectedObject.posX += dx * 0.01;
-      }
+else if (mode == "translate") {
+    // Mouse delta in screen space
+    let dxWorld = dx * 0.01;
+    let dyWorld = -dy * 0.01;
+
+    // If object has parent, transform delta into local space
+    let parentMatrix = selectedObject.parent ? selectedObject.parent.getFullTransformMatrix() : mat4Identity();
+    let invParent = mat4Inverse(parentMatrix);
+
+    // Treat delta as a vector in world space, w=0
+    let deltaVec = [dxWorld, dyWorld, 0, 0];
+
+    // Multiply by inverse parent to get local delta
+    let localDelta = [
+        invParent[0]*deltaVec[0] + invParent[4]*deltaVec[1] + invParent[8]*deltaVec[2],
+        invParent[1]*deltaVec[0] + invParent[5]*deltaVec[1] + invParent[9]*deltaVec[2],
+        invParent[2]*deltaVec[0] + invParent[6]*deltaVec[1] + invParent[10]*deltaVec[2],
+    ];
+
+    selectedObject.posX += localDelta[0];
+    selectedObject.posY += localDelta[1];
+    selectedObject.posZ += localDelta[2];
+}
       else if (mode == "scale") {
-        let scaleDiff = -dy * 0.01;
-        selectedObject.scaY += scaleDiff;
-        selectedObject.scaX += scaleDiff;
-        selectedObject.scaZ += scaleDiff;
+        const scaleDiff = 1 - dy * 0.01;
+
+        // Parent's world scale ignored, apply relative scaling in local space
+        selectedObject.scaX *= scaleDiff;
+        selectedObject.scaY *= scaleDiff;
+        selectedObject.scaZ *= scaleDiff;
       }
       lastX = e.clientX; lastY = e.clientY;
     });
@@ -393,7 +414,6 @@ selectedObjectIndex = selectedObject ? selectedObject.id : null;
     let pulseOpacity = 1;
 
     function drawShapeInScene(s) {
-      console.log(s);
       let transformMatrix = s.getFullTransformMatrix();
       if (s === selectedObject) { //only does this for the ONE selected obj
         gl.disable(gl.CULL_FACE);
@@ -431,7 +451,7 @@ selectedObjectIndex = selectedObject ? selectedObject.id : null;
         gl.drawElements(gl.TRIANGLES, s.length, gl.UNSIGNED_SHORT, 0);
       }
 
-      if (s.children && s.children.length > 0) {
+      if (s.children && s.children.length > 0) { //GENESIS 1:28, PROVERBS 13:22
         for (let j = 0; j < s.children.length; j++) {
           drawShapeInScene(s.children[j]);
         }
