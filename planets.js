@@ -183,4 +183,21 @@ function drawPlanets() {
         cyl.scaZ = 0.2;
         cyl.setColors([1, 1, 1], [.9, .9, .9])
     }
+
+    //planet 5
+    let p5 = createShape("Sphere", p1)
+    p5.posX = -8;
+    p5.posY = -7;
+    p5.scaX = .1;
+    p5.scaY = 0.1;
+    p5.scaZ = 0.11;
+    p5.rotY = Math.PI;
+    p5.rotYSpeed = 5;
+
+    let p5m1 = createShape("Cube", p5);
+    p5m1.posX = -3;
+    p5m1.posY = 2.5;
+    p5m1.scaX = 0.5;
+    p5m1.scaY = 0.5;
+    p5m1.scaZ = 0.5;
 }
